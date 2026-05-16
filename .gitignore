@@ -1,0 +1,11 @@
+.env
+.venv/
+*.bin
+__pycache__/
+ncu_report.txt
+response.txt
+candidate.cu
+baseline.bin
+candidate.bin
+runs.jsonl
+memory.jsonl
