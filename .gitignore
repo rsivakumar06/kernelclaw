@@ -9,3 +9,4 @@ baseline.bin
 candidate.bin
 runs.jsonl
 memory.jsonl
+candidates/
