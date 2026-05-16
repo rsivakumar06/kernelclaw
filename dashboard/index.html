@@ -1264,7 +1264,7 @@ function buildRunCard(run, idx) {
   card.dataset.idx = idx;
 
   const speedupStr = run.speedup != null ? `${run.speedup.toFixed(1)}×` : '—';
-  const ts = run.timestamp ? run.timestamp.slice(11, 19) : '';
+  const ts = run.timestamp ? new Date(run.timestamp).toLocaleTimeString() : '';
 
   card.innerHTML = `
     <div class="run-card-top">
