@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kernel Klaw — Autonomous GPU Optimization Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #76b900;
+    --green-dim: #4a7500;
+    --green-glow: rgba(118,185,0,0.15);
+    --green-subtle: rgba(118,185,0,0.07);
+    --bg: #080b08;
+    --bg-card: #0d110d;
+    --bg-card2: #111611;
+    --border: rgba(118,185,0,0.18);
+    --border-dim: rgba(255,255,255,0.06);
+    --text: #e8f0e8;
+    --text-dim: #6b7a6b;
+    --text-mid: #9aab9a;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(118,185,0,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(118,185,0,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page { position: relative; z-index: 1; }
+
+  /* ── NAV ── */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 3rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,11,8,0.85);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .nav-logo {
+    font-family: var(--sans);
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--green);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .nav-logo .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  .nav-pills { display: flex; gap: 0.25rem; }
+
+  .nav-pills a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 12px;
+    padding: 0.35rem 0.85rem;
+    border-radius: 99px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    letter-spacing: 0.04em;
+  }
+
+  .nav-pills a:hover {
+    color: var(--green);
+    border-color: var(--border);
+    background: var(--green-subtle);
+  }
+
+  .nvidia-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-dim);
+    border-radius: 99px;
+    padding: 0.3rem 0.75rem;
+  }
+
+  .nvidia-badge span { color: var(--green); font-weight: 700; }
+
+  /* ── HERO ── */
+  .hero {
+    padding: 7rem 3rem 5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .hero-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--green);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 1px;
+    background: var(--green);
+  }
+
+  .hero h1 {
+    font-family: var(--sans);
+    font-size: clamp(3rem, 7vw, 5.5rem);
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -0.04em;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero h1 .accent { color: var(--green); }
+
+  .hero-sub {
+    font-size: 15px;
+    color: var(--text-mid);
+    max-width: 560px;
+    line-height: 1.8;
+    margin-bottom: 3rem;
+  }
+
+  .hero-stats { display: flex; gap: 3rem; }
+
+  .stat { display: flex; flex-direction: column; gap: 4px; }
+
+  .stat-num {
+    font-family: var(--sans);
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--green);
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ── SECTION ── */
+  section {
+    padding: 5rem 3rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 0.75rem;
+  }
+
+  .section-title {
+    font-family: var(--sans);
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 3rem;
+    line-height: 1.2;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border-dim);
+    margin: 0 3rem;
+  }
+
+  /* ── HOW IT WORKS ── */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border-dim);
+    border: 1px solid var(--border-dim);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .step {
+    background: var(--bg-card);
+    padding: 1.75rem;
+    position: relative;
+    transition: background 0.2s;
+  }
+
+  .step:hover { background: var(--bg-card2); }
+
+  .step-num {
+    font-family: var(--sans);
+    font-size: 3rem;
+    font-weight: 800;
+    color: rgba(118,185,0,0.12);
+    line-height: 1;
+    margin-bottom: 1rem;
+    letter-spacing: -0.04em;
+  }
+
+  .step-icon { font-size: 18px; margin-bottom: 0.75rem; color: var(--green); }
+
+  .step h3 {
+    font-family: var(--sans);
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.01em;
+  }
+
+  .step p { font-size: 12px; color: var(--text-dim); line-height: 1.7; }
+
+  .step-tag {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    color: var(--green);
+  }
+
+  /* ── MEMORY ── */
+  .memory-grid { display: flex; flex-direction: column; gap: 0.75rem; }
+
+  .memory-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border-dim);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 1rem;
+    transition: border-color 0.2s;
+  }
+
+  .memory-item:hover { border-color: var(--border); }
+  .memory-idx { font-size: 11px; color: var(--text-dim); width: 24px; }
+  .memory-text { font-size: 12.5px; color: var(--text-mid); }
+  .memory-text strong { color: var(--text); font-weight: 500; }
+
+  .memory-speedup {
+    font-family: var(--sans);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--green);
+    white-space: nowrap;
+  }
+
+  .memory-ts { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+
+  /* ── TECH STACK ── */
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+
+  .stack-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-dim);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.2s;
+  }
+
+  .stack-card:hover {
+    border-color: var(--border);
+    background: var(--green-subtle);
+    transform: translateY(-2px);
+  }
+
+  .stack-card-icon { font-size: 28px; margin-bottom: 0.75rem; }
+
+  .stack-card h4 {
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+    letter-spacing: -0.01em;
+  }
+
+  .stack-card p { font-size: 11px; color: var(--text-dim); line-height: 1.6; }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border-dim);
+    padding: 2rem 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  footer .logo {
+    font-family: var(--sans);
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--green);
+    letter-spacing: -0.02em;
+  }
+
+  footer p { font-size: 11px; color: var(--text-dim); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+  /* ════════════════════════════════════════
+     LIVE AGENT DASHBOARD
+  ════════════════════════════════════════ */
+
+  /* ── Dashboard header bar ── */
+  .dash-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+
+  .dash-live-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--green);
+    background: rgba(118,185,0,0.08);
+    border: 1px solid rgba(118,185,0,0.25);
+    border-radius: 99px;
+    padding: 4px 12px;
+  }
+
+  .dash-live-badge .live-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 1.5s infinite;
+  }
+
+  .dash-connection {
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dash-connection .conn-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text-dim);
+  }
+
+  .dash-connection.connected { color: var(--green); }
+  .dash-connection.connected .conn-dot { background: var(--green); animation: pulse 2s infinite; }
+
+  /* ── Main 3-column layout ── */
+  .dash-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr 320px;
+    gap: 1rem;
+    align-items: start;
+    min-height: 600px;
+  }
+
+  /* ── Panel shell ── */
+  .panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-dim);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-dim);
+    background: rgba(0,0,0,0.3);
+    flex-shrink: 0;
+  }
+
+  .panel-head-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-icon { font-size: 13px; }
+
+  .panel-title {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    font-weight: 500;
+  }
+
+  .panel-count {
+    font-size: 10px;
+    background: rgba(118,185,0,0.12);
+    color: var(--green);
+    border: 1px solid rgba(118,185,0,0.2);
+    border-radius: 99px;
+    padding: 1px 7px;
+  }
+
+  .panel-body {
+    padding: 0.75rem;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .panel-body-tall { max-height: 560px; }
+  .panel-body-policy { max-height: 560px; font-size: 11.5px; padding: 0.6rem; }
+
+  /* ── Run Feed Cards ── */
+  .run-card {
+    background: var(--bg-card2);
+    border: 1px solid var(--border-dim);
+    border-radius: 9px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    animation: slideIn 0.35s cubic-bezier(0.16,1,0.3,1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .run-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 3px 0 0 3px;
+    background: var(--text-dim);
+  }
+
+  .run-card.verified::before { background: var(--green); }
+  .run-card.incorrect::before { background: var(--amber); }
+  .run-card.compile_fail::before, .run-card.timeout::before { background: var(--red); }
+
+  .run-card:hover {
+    border-color: var(--border);
+    background: #151a15;
+    transform: translateX(2px);
+  }
+
+  .run-card.active {
+    border-color: var(--border);
+    background: #151a15;
+  }
+
+  .run-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;
+  }
+
+  .run-kernel-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.01em;
+  }
+
+  .run-badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 99px;
+  }
+
+  .badge-verified { background: rgba(118,185,0,0.15); color: var(--green); border: 1px solid rgba(118,185,0,0.3); }
+  .badge-incorrect { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+  .badge-compile_fail, .badge-timeout { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+
+  .run-card-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .run-speedup {
+    font-family: var(--sans);
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--green);
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .run-speedup.dim { color: var(--text-dim); font-size: 1rem; }
+
+  .run-ts {
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  /* ── Detail Panel ── */
+  .detail-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+    color: var(--text-dim);
+    font-size: 12px;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .detail-empty-icon { font-size: 28px; opacity: 0.4; }
+
+  .detail-content { padding: 1rem; }
+
+  .detail-kernel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-dim);
+  }
+
+  .detail-kernel-name {
+    font-family: var(--sans);
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .detail-speedup-big {
+    font-family: var(--sans);
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--green);
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  /* Metrics row */
+  .detail-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .detail-metric {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border-dim);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .detail-metric-label {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .detail-metric-val {
+    font-family: var(--sans);
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--amber);
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .detail-metric-val.good { color: var(--green); }
+
+  /* Diagnosis */
+  .detail-diagnosis {
+    background: rgba(118,185,0,0.04);
+    border: 1px solid rgba(118,185,0,0.12);
+    border-left: 3px solid var(--green);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 12px;
+    color: var(--text-mid);
+    line-height: 1.7;
+  }
+
+  .detail-diagnosis-label {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+
+  /* Timing bar chart */
+  .detail-chart { margin-bottom: 1rem; }
+
+  .detail-chart-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 0.5rem;
+  }
+
+  .chart-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 6px;
+  }
+
+  .chart-row-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    width: 64px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  .chart-bar-wrap {
+    flex: 1;
+    height: 20px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .chart-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1s cubic-bezier(0.4,0,0.2,1);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .chart-bar.baseline { background: rgba(239,68,68,0.35); color: var(--red); }
+  .chart-bar.candidate { background: rgba(118,185,0,0.35); color: var(--green); }
+
+  /* Diff view */
+  .diff-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border-dim);
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
+  }
+
+  .diff-col-head {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 0.5rem 0.75rem;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .diff-col-head .diff-tag {
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  .diff-tag.orig { background: rgba(239,68,68,0.15); color: var(--red); }
+  .diff-tag.opt  { background: rgba(118,185,0,0.15); color: var(--green); }
+
+  .diff-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border-dim);
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+    max-height: 220px;
+  }
+
+  .diff-code {
+    background: #060906;
+    overflow-y: auto;
+    padding: 0.75rem;
+    font-size: 10.5px;
+    line-height: 1.7;
+    color: var(--text-dim);
+  }
+
+  .diff-line { display: flex; gap: 8px; }
+  .diff-ln { color: rgba(255,255,255,0.15); width: 20px; text-align: right; flex-shrink: 0; user-select: none; }
+  .diff-add { color: var(--green); background: rgba(118,185,0,0.06); display: block; width: 100%; }
+  .diff-rem { color: #f87171; background: rgba(239,68,68,0.06); display: block; width: 100%; }
+  .diff-ctx { color: var(--text-dim); }
+
+  /* ── Policy Log Panel ── */
+  .policy-panel {
+    border-color: rgba(118,185,0,0.22);
+    box-shadow: 0 0 24px rgba(118,185,0,0.04);
+  }
+
+  .policy-panel .panel-head {
+    background: rgba(0,0,0,0.5);
+    border-bottom-color: rgba(118,185,0,0.15);
+  }
+
+  .policy-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .policy-critical-badge {
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: rgba(118,185,0,0.12);
+    color: var(--green);
+    border: 1px solid rgba(118,185,0,0.25);
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-weight: 700;
+  }
+
+  .policy-line {
+    display: flex;
+    gap: 8px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    align-items: flex-start;
+    font-size: 11px;
+    line-height: 1.5;
+    animation: fadeup 0.3s ease;
+  }
+
+  @keyframes fadeup {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .policy-line.allow { color: var(--text-dim); }
+  .policy-line.deny  { color: var(--red); background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.1); }
+
+  .policy-verdict {
+    font-weight: 700;
+    flex-shrink: 0;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    margin-top: 1px;
+  }
+
+  .policy-line.allow .policy-verdict { color: rgba(118,185,0,0.5); }
+  .policy-line.deny  .policy-verdict { color: var(--red); }
+
+  .policy-line-ts {
+    color: rgba(255,255,255,0.2);
+    font-size: 9.5px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .policy-line-text { flex: 1; word-break: break-all; }
+
+  .policy-line.deny .policy-line-text .reason {
+    color: rgba(239,68,68,0.6);
+    font-size: 10px;
+    display: block;
+    margin-top: 1px;
+  }
+
+  /* Drop zone */
+  .drop-zone {
+    margin-top: 0.75rem;
+    border: 2px dashed rgba(118,185,0,0.2);
+    border-radius: 10px;
+    padding: 1.25rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+  }
+
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--green);
+    background: var(--green-subtle);
+  }
+
+  .drop-zone-icon { font-size: 20px; margin-bottom: 0.5rem; }
+
+  .drop-zone-text {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  .drop-zone-text strong { color: var(--text-mid); }
+
+  .drop-zone input[type=file] {
+    display: none;
+  }
+
+  .drop-feedback {
+    margin-top: 0.5rem;
+    font-size: 10.5px;
+    color: var(--green);
+    min-height: 16px;
+    text-align: center;
+  }
+
+  /* Scanning line animation on active card */
+  @keyframes scanline {
+    0%   { transform: translateY(-100%); opacity: 0.5; }
+    100% { transform: translateY(400%); opacity: 0; }
+  }
+
+  .run-card.running::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+    top: 0;
+    animation: scanline 1.5s ease-in-out infinite;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <span class="dot"></span>
+    Kernel Klaw
+  </div>
+  <div class="nav-pills">
+    <a href="#demo">Live Agent</a>
+    <a href="#how">How It Works</a>
+    <a href="#memory">Memory</a>
+    <a href="#stack">Stack</a>
+  </div>
+  <div class="nvidia-badge">
+    Powered by <span>NVIDIA Nemotron</span>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero" style="max-width:1200px; padding:60px 20px;">
+  <div class="hero-eyebrow">Autonomous GPU Optimization Agent</div>
+  <h1 style="font-size:clamp(3rem,8vw,5.5rem); font-weight:900; line-height:1.05; letter-spacing:-2px; margin-bottom:40px;">
+    Your GPU code.<br>Automatically <span class="accent">4–8×</span> faster.
+  </h1>
+  <p class="hero-sub" style="font-size:16px; max-width:650px; margin-bottom:60px;">
+    An AI agent that watches your GPU code, profiles it with ncu, reasons about bottlenecks using NVIDIA Nemotron, rewrites it using Triton, benchmarks the improvement, and remembers what it learned — all without a single command from you.
+  </p>
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-num" id="hero-speedup">4.2×</div>
+      <div class="stat-label">Avg speedup</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">0</div>
+      <div class="stat-label">Commands needed</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="hero-patterns">5</div>
+      <div class="stat-label">Patterns learned</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">&lt;90s</div>
+      <div class="stat-label">Per optimization</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════
+     LIVE AGENT SECTION
+═══════════════════════════════════════════ -->
+<section id="demo" style="max-width:1280px;">
+  <div class="section-label">// live agent</div>
+
+  <div class="dash-header">
+    <div class="section-title" style="margin-bottom:0">Autonomous optimization — live</div>
+    <div style="display:flex; align-items:center; gap:1rem;">
+      <div class="dash-live-badge">
+        <span class="live-dot"></span>
+        LIVE FEED
+      </div>
+      <div class="dash-connection" id="conn-status">
+        <span class="conn-dot"></span>
+        Connecting…
+      </div>
+    </div>
+  </div>
+
+  <!-- 3-col grid: run feed | detail | policy log -->
+  <div class="dash-grid">
+
+    <!-- ── COL 1: Run Feed ── -->
+    <div>
+      <div class="panel" style="margin-bottom:0.75rem;">
+        <div class="panel-head">
+          <div class="panel-head-left">
+            <span class="panel-icon">⚡</span>
+            <span class="panel-title">Run Feed</span>
+          </div>
+          <span class="panel-count" id="run-count">0 runs</span>
+        </div>
+        <div class="panel-body panel-body-tall" id="run-feed">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;color:var(--text-dim);font-size:11px;gap:6px;text-align:center;">
+            <span style="font-size:22px;opacity:0.3">⏳</span>
+            Waiting for agent runs…
+          </div>
+        </div>
+      </div>
+
+      <!-- Drop Zone -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-head-left">
+            <span class="panel-icon">📂</span>
+            <span class="panel-title">Drop a Kernel</span>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="drop-zone" id="drop-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)" onclick="document.getElementById('file-input').click()">
+            <div class="drop-zone-icon">🚀</div>
+            <div class="drop-zone-text">
+              <strong>Drag &amp; drop a .cu file here</strong><br>
+              Agent picks it up in seconds
+            </div>
+            <input type="file" id="file-input" accept=".cu,.py" onchange="onFileSelect(event)">
+          </div>
+          <div class="drop-feedback" id="drop-feedback"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── COL 2: Run Detail ── -->
+    <div class="panel" style="min-height:600px;">
+      <div class="panel-head">
+        <div class="panel-head-left">
+          <span class="panel-icon">🔬</span>
+          <span class="panel-title">Run Detail</span>
+        </div>
+        <span id="detail-badge" style="display:none" class="run-badge"></span>
+      </div>
+      <div class="panel-body" id="detail-panel" style="max-height:none; overflow-y:auto;">
+        <div class="detail-empty">
+          <div class="detail-empty-icon">👈</div>
+          <div>Click a run card to inspect it</div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">Diff · metrics · diagnosis · timing chart</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── COL 3: Policy Log ── -->
+    <div class="panel policy-panel" style="min-height:600px;">
+      <div class="panel-head">
+        <div class="panel-head-left">
+          <span class="panel-icon">🛡</span>
+          <div class="policy-title-group">
+            <span class="panel-title">NemoClaw Policy Log</span>
+            <span class="policy-critical-badge">AUDIT</span>
+          </div>
+        </div>
+        <span class="panel-count" id="policy-count">0 checks</span>
+      </div>
+      <div class="panel-body panel-body-policy" id="policy-log" style="max-height:560px; overflow-y:auto;">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;color:var(--text-dim);font-size:11px;gap:6px;text-align:center;">
+          <span style="font-size:22px;opacity:0.3">📋</span>
+          Tailing policy_log.txt…
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="section-label">// architecture</div>
+  <div class="section-title">Six-step autonomous loop</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-icon">👁</div>
+      <div class="step-tag">trigger</div>
+      <h3>Watch</h3>
+      <p>A file watcher monitors your GPU code directory. The moment a .py or .cu file is saved, the agent wakes up — no commands, no buttons.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-icon">📊</div>
+      <div class="step-tag">tool use</div>
+      <h3>Profile</h3>
+      <p>NVIDIA's ncu profiler runs automatically, measuring SM occupancy, tensor core utilization, memory coalescing, and warp stall reasons at the hardware level.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-icon">🧠</div>
+      <div class="step-tag">reasoning</div>
+      <h3>Diagnose</h3>
+      <p>Nemotron reads the dense profiler output and produces a plain-English diagnosis: exactly what bottleneck exists and why.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div class="step-icon">✍️</div>
+      <div class="step-tag">code gen</div>
+      <h3>Rewrite</h3>
+      <p>Based on the diagnosis, the agent generates a fixed version using Triton — directly targeting the identified bottleneck.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">05</div>
+      <div class="step-icon">⚡</div>
+      <div class="step-tag">verification</div>
+      <h3>Benchmark</h3>
+      <p>Both versions run side-by-side, five times each, measuring real wall-clock throughput. If the new version isn't faster, it gets discarded.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">06</div>
+      <div class="step-icon">💾</div>
+      <div class="step-tag">memory</div>
+      <h3>Remember</h3>
+      <p>Every optimization pattern is written to persistent memory. The agent gets measurably smarter over time.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- MEMORY -->
+<section id="memory">
+  <div class="section-label">// persistent memory</div>
+  <div class="section-title">Patterns learned during this session</div>
+  <div class="memory-grid" id="memory-grid">
+    <div class="memory-item">
+      <div class="memory-idx">01</div>
+      <div class="memory-text"><strong>Non-power-of-2 matrix dims</strong> → pad to nearest multiple of 16 → tensor cores engage</div>
+      <div class="memory-speedup">4.2×</div>
+      <div class="memory-ts">14:23:07</div>
+    </div>
+    <div class="memory-item">
+      <div class="memory-idx">02</div>
+      <div class="memory-text"><strong>Strided memory access in reduction</strong> → transpose layout → coalesced reads</div>
+      <div class="memory-speedup">2.8×</div>
+      <div class="memory-ts">14:51:33</div>
+    </div>
+    <div class="memory-item">
+      <div class="memory-idx">03</div>
+      <div class="memory-text"><strong>FP32 accumulation in inner loop</strong> → FP16 with TF32 → halved bandwidth, same accuracy</div>
+      <div class="memory-speedup">1.9×</div>
+      <div class="memory-ts">15:18:44</div>
+    </div>
+    <div class="memory-item">
+      <div class="memory-idx">04</div>
+      <div class="memory-text"><strong>Block size mismatch with warp size</strong> → set block_size=128 → full warp occupancy</div>
+      <div class="memory-speedup">3.1×</div>
+      <div class="memory-ts">15:44:02</div>
+    </div>
+    <div class="memory-item">
+      <div class="memory-idx">05</div>
+      <div class="memory-text"><strong>Sequential shared memory reads</strong> → bank-conflict-free padding → zero bank conflicts</div>
+      <div class="memory-speedup">1.6×</div>
+      <div class="memory-ts">16:09:15</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- TECH STACK -->
+<section id="stack">
+  <div class="section-label">// built with</div>
+  <div class="section-title">NVIDIA-native technology stack</div>
+  <div class="stack-grid">
+    <div class="stack-card">
+      <div class="stack-card-icon">🧠</div>
+      <h4>Nemotron-49B</h4>
+      <p>Multi-step reasoning over profiler output. Diagnoses hardware bottlenecks and generates targeted fixes.</p>
+    </div>
+    <div class="stack-card">
+      <div class="stack-card-icon">📊</div>
+      <h4>NVIDIA ncu</h4>
+      <p>Nsight Compute CLI. Measures SM occupancy, tensor core utilization, memory coalescing, and warp stalls.</p>
+    </div>
+    <div class="stack-card">
+      <div class="stack-card-icon">⚡</div>
+      <h4>OpenAI Triton</h4>
+      <p>High-performance GPU kernel language. Used by the agent to write optimized replacements without raw CUDA.</p>
+    </div>
+    <div class="stack-card">
+      <div class="stack-card-icon">💾</div>
+      <h4>Persistent Memory</h4>
+      <p>JSON pattern store. Every optimization is logged with speedup data. Agent improves across the entire session.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="logo">Kernel Klaw</div>
+  <p>Built at NVIDIA × ASUS Hackathon · DGX Spark Track</p>
+  <p style="color:var(--green);font-size:12px">Powered by NVIDIA Nemotron</p>
+</footer>
+
+</div><!-- .page -->
+
+<script>
+/* ══════════════════════════════════════════════════
+   CONFIG — point at FastAPI backend
+══════════════════════════════════════════════════ */
+const API = 'http://100.93.80.126:8000';   // same host; adjust if needed
+const POLL_RUNS_MS   = 2500;
+const POLL_POLICY_MS = 1500;
+
+/* ══════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════ */
+let knownRunTs   = new Set();   // timestamps of runs we've rendered
+let knownPolicy  = 0;           // lines we've rendered
+let activeRunIdx = null;        // which run is open in detail
+let allRuns      = [];          // all runs, newest first
+let connected    = false;
+
+/* ══════════════════════════════════════════════════
+   BOOTSTRAP
+══════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  pollRuns();
+  pollPolicy();
+  setInterval(pollRuns,   POLL_RUNS_MS);
+  setInterval(pollPolicy, POLL_POLICY_MS);
+});
+
+/* ══════════════════════════════════════════════════
+   RUNS FEED
+══════════════════════════════════════════════════ */
+async function pollRuns() {
+  try {
+    const r = await fetch(`${API}/runs`);
+    if (!r.ok) throw new Error(r.status);
+    const data = await r.json();   // array, newest first
+    setConnected(true);
+    handleRuns(data);
+  } catch(e) {
+    setConnected(false);
+  }
+}
+
+function handleRuns(data) {
+  allRuns = data;
+
+  const feed = document.getElementById('run-feed');
+  const firstRender = knownRunTs.size === 0 && data.length > 0;
+
+  // clear placeholder on first data
+  if (firstRender) feed.innerHTML = '';
+
+  let added = 0;
+  // data is newest-first; insert at top for each new entry
+  for (const run of data) {
+    const key = run.timestamp + run.kernel_name;
+    if (knownRunTs.has(key)) continue;
+    knownRunTs.add(key);
+    const card = buildRunCard(run, allRuns.indexOf(run));
+    if (firstRender) {
+      feed.appendChild(card);
+    } else {
+      feed.insertBefore(card, feed.firstChild);
+    }
+    added++;
+  }
+
+  document.getElementById('run-count').textContent =
+    `${data.length} run${data.length !== 1 ? 's' : ''}`;
+}
+
+function buildRunCard(run, idx) {
+  const card = document.createElement('div');
+  const st   = run.status || 'unknown';
+  card.className = `run-card ${st}`;
+  card.dataset.idx = idx;
+
+  const speedupStr = run.speedup != null ? `${run.speedup.toFixed(1)}×` : '—';
+  const ts = run.timestamp ? run.timestamp.slice(11, 19) : '';
+
+  card.innerHTML = `
+    <div class="run-card-top">
+      <div class="run-kernel-name">${esc(run.kernel_name)}</div>
+      <div class="run-badge badge-${st}">${statusLabel(st)}</div>
+    </div>
+    <div class="run-card-bottom">
+      <div class="run-speedup ${run.speedup == null ? 'dim' : ''}">${speedupStr}</div>
+      <div class="run-ts">${ts}</div>
+    </div>
+  `;
+
+  card.addEventListener('click', () => openDetail(idx, card));
+  return card;
+}
+
+function statusLabel(st) {
+  return { verified: 'VERIFIED', incorrect: 'REJECTED',
+           compile_fail: 'COMPILE FAIL', timeout: 'TIMEOUT' }[st] || st.toUpperCase();
+}
+
+/* ══════════════════════════════════════════════════
+   RUN DETAIL
+══════════════════════════════════════════════════ */
+function openDetail(idx, card) {
+  // deactivate old
+  document.querySelectorAll('.run-card').forEach(c => c.classList.remove('active'));
+  card.classList.add('active');
+  activeRunIdx = idx;
+
+  const run = allRuns[idx];
+  if (!run) return;
+
+  const panel = document.getElementById('detail-panel');
+  const badge = document.getElementById('detail-badge');
+
+  const st = run.status || 'unknown';
+  badge.className = `run-badge badge-${st}`;
+  badge.textContent = statusLabel(st);
+  badge.style.display = 'inline-flex';
+
+  const m = run.metrics || {};
+  const occ  = m.occupancy            != null ? m.occupancy.toFixed(1) + '%' : '—';
+  const mem  = m.mem_throughput_pct   != null ? m.mem_throughput_pct.toFixed(1) + '%' : '—';
+  const comp = m.compute_throughput_pct != null ? m.compute_throughput_pct.toFixed(1) + '%' : '—';
+
+  const baseUs = run.baseline_us   || 0;
+  const candUs = run.candidate_us  || 0;
+  const maxUs  = Math.max(baseUs, candUs, 1);
+  const baseW  = ((baseUs / maxUs) * 100).toFixed(1);
+  const candW  = ((candUs / maxUs) * 100).toFixed(1);
+
+  const speedupStr = run.speedup != null ? `${run.speedup.toFixed(2)}×` : '—';
+
+  panel.innerHTML = `
+    <div class="detail-content">
+      <div class="detail-kernel-header">
+        <div class="detail-kernel-name">${esc(run.kernel_name)}</div>
+        ${run.speedup != null ? `<div class="detail-speedup-big">${speedupStr}</div>` : ''}
+      </div>
+
+      <div class="detail-metrics">
+        <div class="detail-metric">
+          <div class="detail-metric-label">SM Occupancy</div>
+          <div class="detail-metric-val">${occ}</div>
+        </div>
+        <div class="detail-metric">
+          <div class="detail-metric-label">Mem Throughput</div>
+          <div class="detail-metric-val">${mem}</div>
+        </div>
+        <div class="detail-metric">
+          <div class="detail-metric-label">Compute Tput</div>
+          <div class="detail-metric-val">${comp}</div>
+        </div>
+      </div>
+
+      ${run.diagnosis ? `
+      <div class="detail-diagnosis">
+        <div class="detail-diagnosis-label">🧠 Nemotron Diagnosis</div>
+        ${esc(run.diagnosis)}
+      </div>` : ''}
+
+      ${baseUs > 0 || candUs > 0 ? `
+      <div class="detail-chart">
+        <div class="detail-chart-label">Timing comparison</div>
+        <div class="chart-row">
+          <div class="chart-row-label">Baseline</div>
+          <div class="chart-bar-wrap">
+            <div class="chart-bar baseline" style="width:${baseW}%">${baseUs.toFixed(1)} µs</div>
+          </div>
+        </div>
+        <div class="chart-row">
+          <div class="chart-row-label">Candidate</div>
+          <div class="chart-bar-wrap">
+            <div class="chart-bar candidate" style="width:${candW}%">${candUs.toFixed(1)} µs</div>
+          </div>
+        </div>
+      </div>` : ''}
+
+      <div class="diff-header">
+        <div class="diff-col-head">
+          <span class="diff-tag orig">ORIG</span>
+          kernels/${esc(run.kernel_name)}.cu
+        </div>
+        <div class="diff-col-head">
+          <span class="diff-tag opt">OPT</span>
+          candidates/${esc(run.kernel_name)}.cu
+        </div>
+      </div>
+      <div class="diff-body">
+        <div class="diff-code" id="diff-orig">Loading…</div>
+        <div class="diff-code" id="diff-cand">Loading…</div>
+      </div>
+    </div>
+  `;
+
+  // Fetch source files
+  fetchSource(`${API}/source/kernel/${encodeURIComponent(run.kernel_name)}`, 'diff-orig');
+  fetchSource(`${API}/source/candidate/${encodeURIComponent(run.kernel_name)}`, 'diff-cand');
+}
+
+async function fetchSource(url, elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) { el.innerHTML = `<span style="color:var(--text-dim);font-size:10px">source not found</span>`; return; }
+    const text = await r.text();
+    renderCode(el, text);
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--red);font-size:10px">error loading source</span>`;
+  }
+}
+
+function renderCode(el, code) {
+  const lines = code.split('\n');
+  el.innerHTML = lines.map((l, i) =>
+    `<div class="diff-line"><span class="diff-ln">${i+1}</span><span class="diff-ctx">${esc(l) || ' '}</span></div>`
+  ).join('');
+}
+
+/* ══════════════════════════════════════════════════
+   POLICY LOG
+══════════════════════════════════════════════════ */
+async function pollPolicy() {
+  try {
+    const r = await fetch(`${API}/policy_log?offset=${knownPolicy}`);
+    if (!r.ok) return;
+    const data = await r.json();   // { lines: [...], total: N }
+    handlePolicyLines(data.lines || [], data.total || 0);
+  } catch(e) {}
+}
+
+function handlePolicyLines(lines, total) {
+  if (!lines.length) return;
+
+  const logEl = document.getElementById('policy-log');
+
+  // clear placeholder on first lines
+  if (knownPolicy === 0) logEl.innerHTML = '';
+
+  for (const raw of lines) {
+    const { verdict, text, reason, ts } = parsePolicyLine(raw);
+    const div = document.createElement('div');
+    div.className = `policy-line ${verdict}`;
+    div.innerHTML = `
+      <span class="policy-line-ts">${ts}</span>
+      <span class="policy-verdict">[${verdict.toUpperCase()}]</span>
+      <span class="policy-line-text">
+        ${esc(text)}
+        ${reason ? `<span class="reason">↳ ${esc(reason)}</span>` : ''}
+      </span>
+    `;
+    logEl.appendChild(div);
+    knownPolicy++;
+  }
+
+  // auto-scroll to bottom (newest)
+  logEl.scrollTop = logEl.scrollHeight;
+
+  // update count
+  document.getElementById('policy-count').textContent =
+    `${total} check${total !== 1 ? 's' : ''}`;
+}
+
+function parsePolicyLine(raw) {
+  // Expected format: "HH:MM:SS [ALLOW|DENY] action — reason"
+  // Fallback: treat the whole line as text
+  const tsMatch  = raw.match(/^(\d{2}:\d{2}:\d{2})\s+/);
+  const ts       = tsMatch ? tsMatch[1] : '';
+  const rest     = tsMatch ? raw.slice(tsMatch[0].length) : raw;
+
+  const allow    = rest.startsWith('[ALLOW]');
+  const deny     = rest.startsWith('[DENY]');
+  const verdict  = deny ? 'deny' : 'allow';
+
+  let body = rest.replace(/^\[(ALLOW|DENY)\]\s*/, '');
+  let reason = '';
+
+  const dashIdx  = body.indexOf(' — ');
+  if (dashIdx !== -1) {
+    reason = body.slice(dashIdx + 3);
+    body   = body.slice(0, dashIdx);
+  }
+
+  return { verdict, text: body, reason, ts };
+}
+
+/* ══════════════════════════════════════════════════
+   DROP ZONE
+══════════════════════════════════════════════════ */
+function onDragOver(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.add('dragover');
+}
+
+function onDragLeave(e) {
+  document.getElementById('drop-zone').classList.remove('dragover');
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) uploadFile(file);
+}
+
+function onFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) uploadFile(file);
+}
+
+async function uploadFile(file) {
+  const fb = document.getElementById('drop-feedback');
+  fb.style.color = 'var(--amber)';
+  fb.textContent = `⏳ Uploading ${file.name}…`;
+
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const r = await fetch(`${API}/upload`, { method: 'POST', body: fd });
+    if (!r.ok) throw new Error(await r.text());
+    fb.style.color = 'var(--green)';
+    fb.textContent = `✅ ${file.name} sent to agent — run will appear in feed`;
+    setTimeout(() => fb.textContent = '', 5000);
+  } catch(err) {
+    fb.style.color = 'var(--red)';
+    fb.textContent = `❌ Upload failed: ${err.message}`;
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════ */
+function setConnected(ok) {
+  const el = document.getElementById('conn-status');
+  if (ok === connected) return;
+  connected = ok;
+  el.className = `dash-connection ${ok ? 'connected' : ''}`;
+  el.innerHTML = `<span class="conn-dot"></span>${ok ? 'Connected to backend' : 'Backend unreachable'}`;
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

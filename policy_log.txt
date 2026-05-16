@@ -1,0 +1,10 @@
+04:00:01 [ALLOW] read /sandbox/kernelclaw/kernels/naive_matmul.cu — filesystem read_only policy
+04:00:01 [ALLOW] read /sandbox/kernelclaw/kernels/naive_matmul.ncu.txt — filesystem read_only policy
+04:00:02 [ALLOW] connect inference.local:443 — managed_inference policy (python3 → gateway)
+04:00:05 [ALLOW] write /sandbox/kernelclaw/candidates/naive_matmul_candidate.cu — sandbox writable
+04:00:05 [ALLOW] disconnect inference.local — clean response received
+09:41:50 [DENY] write /etc/passwd — read_only filesystem path
+09:41:50 [DENY] write /usr/bin/evil — read_only filesystem path
+09:41:51 [DENY] connect example.com:443 — host not in network policy
+09:41:51 [DENY] exec /usr/bin/sudo — binary not present in sandbox
+11:11:00 [DENY] connect integrate.api.nvidia.com:443 — nvidia policy restricts to openclaw binary only
