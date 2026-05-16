@@ -4,7 +4,7 @@
 # NemoClaw. It implements the principle: trust the privileged toolchain on the
 # host; sandbox the LLM-generated code on the agent side.
 
-version: 8
+version: 9
 sandbox: kernelclaw
 enforcement: Landlock + seccomp + netns + OpenShell policy proxy
 
