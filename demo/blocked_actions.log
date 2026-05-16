@@ -1,0 +1,16 @@
+=== KernelClaw / NemoClaw blocked actions ===
+Date: Sat May 16 09:41:50 UTC 2026
+Sandbox user: sandbox
+
+$ touch /etc/passwd
+touch: cannot touch '/etc/passwd': Permission denied
+
+$ touch /usr/bin/evil
+touch: cannot touch '/usr/bin/evil': Permission denied
+
+$ curl -sS https://example.com
+curl: (56) CONNECT tunnel failed, response 403
+
+$ sudo -n whoami
+bash: sudo: command not found
+sudo: command not found
