@@ -926,14 +926,14 @@
 <div class="hero" style="max-width:1200px; padding:60px 20px;">
   <div class="hero-eyebrow">Autonomous GPU Optimization Agent</div>
   <h1 style="font-size:clamp(3rem,8vw,5.5rem); font-weight:900; line-height:1.05; letter-spacing:-2px; margin-bottom:40px;">
-    Your GPU code.<br>Automatically <span class="accent">4–8×</span> faster.
+    Your GPU code.<br>Automatically <span class="accent">up to 136×</span> faster.
   </h1>
   <p class="hero-sub" style="font-size:16px; max-width:650px; margin-bottom:60px;">
-    An AI agent that watches your GPU code, profiles it with ncu, reasons about bottlenecks using NVIDIA Nemotron, rewrites it using Triton, benchmarks the improvement, and remembers what it learned — all without a single command from you.
+    An AI agent that watches your GPU code, profiles it with ncu, reasons about bottlenecks using NVIDIA Nemotron, rewrites it using CUDA, benchmarks the improvement, and remembers what it learned — all without a single command from you.
   </p>
   <div class="hero-stats">
     <div class="stat">
-      <div class="stat-num" id="hero-speedup">4.2×</div>
+      <div class="stat-num" id="hero-speedup">136×</div>
       <div class="stat-label">Avg speedup</div>
     </div>
     <div class="stat">
@@ -941,7 +941,7 @@
       <div class="stat-label">Commands needed</div>
     </div>
     <div class="stat">
-      <div class="stat-num" id="hero-patterns">5</div>
+      <div class="stat-num" id="hero-patterns">4</div>
       <div class="stat-label">Patterns learned</div>
     </div>
     <div class="stat">
@@ -1090,7 +1090,7 @@
       <div class="step-icon">✍️</div>
       <div class="step-tag">code gen</div>
       <h3>Rewrite</h3>
-      <p>Based on the diagnosis, the agent generates a fixed version using Triton — directly targeting the identified bottleneck.</p>
+      <p>Based on the diagnosis, the agent generates a fixed version using CUDA — directly targeting the identified bottleneck.</p>
     </div>
     <div class="step">
       <div class="step-num">05</div>
@@ -1112,7 +1112,7 @@
 <hr class="divider">
 
 <!-- MEMORY -->
-<section id="memory">
+<section id="memory" style="display:none">
   <div class="section-label">// persistent memory</div>
   <div class="section-title">Patterns learned during this session</div>
   <div class="memory-grid" id="memory-grid">
@@ -1168,7 +1168,7 @@
     </div>
     <div class="stack-card">
       <div class="stack-card-icon">⚡</div>
-      <h4>OpenAI Triton</h4>
+      <h4>OpenAI CUDA</h4>
       <p>High-performance GPU kernel language. Used by the agent to write optimized replacements without raw CUDA.</p>
     </div>
     <div class="stack-card">

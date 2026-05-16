@@ -10,3 +10,9 @@ candidate.bin
 runs.jsonl
 memory.jsonl
 candidates/
+naive_matmul
+naive_reduction
+naive_transpose
+dashboard/backend.log
+dashboard/__pycache__/
+dashboard/.venv/
