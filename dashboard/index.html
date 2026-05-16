@@ -914,7 +914,6 @@
   <div class="nav-pills">
     <a href="#demo">Live Agent</a>
     <a href="#how">How It Works</a>
-    <a href="#memory">Memory</a>
     <a href="#stack">Stack</a>
   </div>
   <div class="nvidia-badge">
@@ -1036,15 +1035,15 @@
 
     <!-- ── COL 3: Policy Log ── -->
     <div class="panel policy-panel" style="min-height:600px;">
-      <div class="panel-head">
-        <div class="panel-head-left">
-          <span class="panel-icon">🛡</span>
-          <div class="policy-title-group">
-            <span class="panel-title">NemoClaw Policy Log</span>
-            <span class="policy-critical-badge">AUDIT</span>
+      <div class="panel-head" style="flex-wrap:nowrap; gap:0.5rem;">
+        <div class="panel-head-left" style="min-width:0; flex-shrink:1; overflow:hidden;">
+          <span class="panel-icon" style="flex-shrink:0;">🛡</span>
+          <div class="policy-title-group" style="min-width:0;">
+            <span class="panel-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">NemoClaw Policy Log</span>
+            <span class="policy-critical-badge" style="flex-shrink:0;">AUDIT</span>
           </div>
         </div>
-        <span class="panel-count" id="policy-count">0 checks</span>
+        <span class="panel-count" id="policy-count" style="white-space:nowrap; flex-shrink:0; min-width:fit-content;">0 checks</span>
       </div>
       <div class="panel-body panel-body-policy" id="policy-log" style="max-height:560px; overflow-y:auto;">
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;color:var(--text-dim);font-size:11px;gap:6px;text-align:center;">
