@@ -1,0 +1,49 @@
+# KernelClaw — NemoClaw Sandbox Policy
+#
+# This policy applies to the autonomous CUDA optimization agent running inside
+# NemoClaw. It implements the principle: trust the privileged toolchain on the
+# host; sandbox the LLM-generated code on the agent side.
+
+version: 8
+sandbox: kernelclaw
+enforcement: Landlock + seccomp + netns + OpenShell policy proxy
+
+filesystem_policy:
+  read_only:
+    - /usr
+    - /lib
+    - /etc
+    - /app
+  read_write:
+    - /sandbox                      # agent workdir
+    - /tmp
+    - /dev/nvidia*                  # GPU device nodes (passthrough)
+  denied_writes:
+    - /etc/passwd                   # demonstrated: blocked
+    - /usr/bin/*                    # demonstrated: blocked
+
+network_policy:
+  # Direct calls to Nemotron API are RESTRICTED to the openclaw runtime.
+  # User code (python3, etc) cannot bypass the managed gateway.
+  nvidia_api:
+    host: integrate.api.nvidia.com:443
+    allowed_binaries: [/usr/local/bin/openclaw]
+    paths:
+      - POST /v1/chat/completions
+      - POST /v1/embeddings
+      - GET  /v1/models
+  # Custom code in the sandbox routes through NemoClaw's managed gateway,
+  # which adds policy enforcement, rate limiting, and audit logging.
+  managed_inference:
+    host: inference.local:443
+    allowed_binaries: [python3, node, curl, openclaw]
+    paths: [GET /**, POST /**]
+  # Everything else is denied by default.
+  denied_egress:
+    - example.com                   # demonstrated: blocked (curl test)
+    - "*"                           # default deny
+
+process_policy:
+  user: sandbox                     # not root
+  group: sandbox
+  privileged_binaries_available: false  # sudo not present
