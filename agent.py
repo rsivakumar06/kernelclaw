@@ -158,7 +158,7 @@ def call_nemotron(client: OpenAI, kernel_src: str,
             {"role": "user",   "content": user},
         ],
         temperature=0.2,
-        max_tokens=4000,
+        max_tokens=8000,
     )
     return resp.choices[0].message.content
 
@@ -231,6 +231,10 @@ def run_pipeline(cu_file: Path, client: OpenAI):
     # 4 — call Nemotron
     print("[4/6] Calling Nemotron...")
     response = call_nemotron(client, cu_file.read_text(), ncu_text, few_shots)
+    if not response:
+        print("[FAIL] Nemotron returned empty response")
+        log_run(kernel_name, metrics, "", "compile_fail", 0, 0, 0)
+        return
     response_file.write_text(response)
     diagnosis = extract_diagnosis(response)
     print(f"       {diagnosis[:120]}...")
