@@ -1,7 +1,7 @@
 
 ## Why NemoClaw, not just OpenClaw?
 
-dOpenClaw gives you an autonomous agent. NemoClaw gives you an autonomous agent
+OpenClaw gives you an autonomous agent. NemoClaw gives you an autonomous agent
 you can actually trust in production. Here's what NemoClaw adds:
 
 1. **Per-binary network enforcement** — not just "allow this domain" but "only
